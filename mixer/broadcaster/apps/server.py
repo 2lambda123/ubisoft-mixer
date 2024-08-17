@@ -26,7 +26,8 @@ from mixer.broadcaster.socket import Socket
 
 SHUTDOWN = False
 
-logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(__name__)
+logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(
+    __name__)
 _log_server_updates: bool = False
 
 # If more that this number of commands need to be broadcaster to a joining
@@ -44,9 +45,11 @@ class Connection:
 
         self.unique_id = f"{address[0]}:{address[1]}"
 
-        self.custom_attributes: Dict[str, Any] = {}  # custom attributes are used between clients, but not by the server
+        self.custom_attributes: Dict[str, Any] = {
+        }  # custom attributes are used between clients, but not by the server
 
-        self._command_queue: queue.Queue = queue.Queue()  # Pending commands to send to the client
+        self._command_queue: queue.Queue = queue.Queue(
+        )  # Pending commands to send to the client
         self._server = server
         self._latency: float = 0.0  # seconds
 
@@ -60,14 +63,19 @@ class Connection:
         """ """
         return {
             **self.custom_attributes,
-            common.ClientAttributes.ID: f"{self.unique_id}",
-            common.ClientAttributes.IP: self.address[0],
-            common.ClientAttributes.PORT: self.address[1],
-            common.ClientAttributes.ROOM: self.room.name if self.room is not None else None,
+            common.ClientAttributes.ID:
+            f"{self.unique_id}",
+            common.ClientAttributes.IP:
+            self.address[0],
+            common.ClientAttributes.PORT:
+            self.address[1],
+            common.ClientAttributes.ROOM:
+            self.room.name if self.room is not None else None,
         }
 
     def run(self):
         """ """
+
         def _send_error(s: str):
             """
 
@@ -75,7 +83,9 @@ class Connection:
 
             """
             logger.error("Sending error %s", s)
-            self.send_command(common.Command(common.MessageType.SEND_ERROR, common.encode_string(s)))
+            self.send_command(
+                common.Command(common.MessageType.SEND_ERROR,
+                               common.encode_string(s)))
 
         def _join_room(command: common.Command):
             """
@@ -84,7 +94,9 @@ class Connection:
 
             """
             if self.room is not None:
-                _send_error(f"Received join_room but room {self.room.name} is already joined")
+                _send_error(
+                    f"Received join_room but room {self.room.name} is already joined"
+                )
                 return
             room_name = command.data.decode()
             try:
@@ -128,7 +140,8 @@ class Connection:
             :param Any]:
 
             """
-            diff = update_attributes_and_get_diff(self.custom_attributes, custom_attributes)
+            diff = update_attributes_and_get_diff(self.custom_attributes,
+                                                  custom_attributes)
             self._server.broadcast_client_update(self, diff)
 
         def _set_client_name(command: common.Command):
@@ -137,7 +150,8 @@ class Connection:
             :param command: common.Command:
 
             """
-            _set_custom_attributes({common.ClientAttributes.USERNAME: command.data.decode()})
+            _set_custom_attributes(
+                {common.ClientAttributes.USERNAME: command.data.decode()})
 
         def _list_clients(command: common.Command):
             """
@@ -163,7 +177,8 @@ class Connection:
             """
             room_name, offset = common.decode_string(command.data, 0)
             custom_attributes, _ = common.decode_json(command.data, offset)
-            self._server.set_room_custom_attributes(room_name, custom_attributes)
+            self._server.set_room_custom_attributes(room_name,
+                                                    custom_attributes)
 
         def _set_room_keep_open(command: common.Command):
             """
@@ -182,8 +197,9 @@ class Connection:
 
             """
             self.send_command(
-                common.Command(common.MessageType.CLIENT_ID, f"{self.address[0]}:{self.address[1]}".encode("utf8"))
-            )
+                common.Command(
+                    common.MessageType.CLIENT_ID,
+                    f"{self.address[0]}:{self.address[1]}".encode("utf8")))
 
         def _content(command: common.Command):
             """
@@ -195,21 +211,26 @@ class Connection:
                 _send_error("Unjoined client trying to set room joinable")
                 return
             if self.room.joinable:
-                _send_error(f"Trying to set joinable room {self.room.name} which is already joinable")
+                _send_error(
+                    f"Trying to set joinable room {self.room.name} which is already joinable"
+                )
                 return
             self.room.joinable = True
-            self._server.broadcast_room_update(self.room, {common.RoomAttributes.JOINABLE: True})
+            self._server.broadcast_room_update(
+                self.room, {common.RoomAttributes.JOINABLE: True})
 
         command_handlers = {
             common.MessageType.JOIN_ROOM: _join_room,
             common.MessageType.LEAVE_ROOM: _leave_room,
             common.MessageType.LIST_ROOMS: _list_rooms,
             common.MessageType.DELETE_ROOM: _delete_room,
-            common.MessageType.SET_ROOM_CUSTOM_ATTRIBUTES: _set_room_custom_attributes,
+            common.MessageType.SET_ROOM_CUSTOM_ATTRIBUTES:
+            _set_room_custom_attributes,
             common.MessageType.SET_ROOM_KEEP_OPEN: _set_room_keep_open,
             common.MessageType.LIST_CLIENTS: _list_clients,
             common.MessageType.SET_CLIENT_NAME: _set_client_name,
-            common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES: _set_client_custom_attributes,
+            common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES:
+            _set_client_custom_attributes,
             common.MessageType.CLIENT_ID: _client_id,
             common.MessageType.CONTENT: _content,
         }
@@ -222,13 +243,16 @@ class Connection:
             if count == 0:
                 return
 
-            logger.debug("Received from %s - %d commands ", self.unique_id, count)
+            logger.debug("Received from %s - %d commands ", self.unique_id,
+                         count)
 
             time.sleep(self.latency)
 
             for command in received_commands:
-                if _log_server_updates or command.type not in (common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES,):
-                    logger.debug("Received from %s - %s", self.unique_id, command.type)
+                if _log_server_updates or command.type not in (
+                        common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES, ):
+                    logger.debug("Received from %s - %s", self.unique_id,
+                                 command.type)
 
                 if command.type in command_handlers:
                     command_handlers[command.type](command)
@@ -243,7 +267,9 @@ class Connection:
                             command.type,
                         )
                 else:
-                    logger.error("Command %s received but no handler for it on server", command.type)
+                    logger.error(
+                        "Command %s received but no handler for it on server",
+                        command.type)
 
         def _handle_outgoing_commands():
             """ """
@@ -291,10 +317,11 @@ class Connection:
         """
         assert threading.current_thread() is self.thread
         if _log_server_updates or command.type not in (
-            common.MessageType.CLIENT_UPDATE,
-            common.MessageType.ROOM_UPDATE,
+                common.MessageType.CLIENT_UPDATE,
+                common.MessageType.ROOM_UPDATE,
         ):
-            logger.debug("Sending to %s:%s - %s", self.address[0], self.address[1], command.type)
+            logger.debug("Sending to %s:%s - %s", self.address[0],
+                         self.address[1], command.type)
         common.write_message(self.socket, command)
 
 
@@ -313,7 +340,8 @@ class Room:
         self.byte_size = 0
         self.joinable = False  # A room becomes joinable when its first client has send all the initial content
 
-        self.custom_attributes: Dict[str, Any] = {}  # custom attributes are used between clients, but not by the server
+        self.custom_attributes: Dict[str, Any] = {
+        }  # custom attributes are used between clients, but not by the server
 
         self._commands: List[common.Command] = []
 
@@ -325,7 +353,9 @@ class Room:
         # Server is responsible of increasing / decreasing join_count, with mutex protection
 
         creator.room = self
-        creator.send_command(common.Command(common.MessageType.JOIN_ROOM, common.encode_string(self.name)))
+        creator.send_command(
+            common.Command(common.MessageType.JOIN_ROOM,
+                           common.encode_string(self.name)))
         creator.send_command(
             common.Command(common.MessageType.CONTENT)
         )  # self.joinable will be set to true by creator later
@@ -346,7 +376,9 @@ class Room:
         """
         logger.info(f"Add Client {connection.unique_id} to Room {self.name}")
 
-        connection.send_command(common.Command(common.MessageType.CLEAR_CONTENT))  # todo temporary size stored here
+        connection.send_command(
+            common.Command(common.MessageType.CLEAR_CONTENT)
+        )  # todo temporary size stored here
 
         offset = 0
 
@@ -367,7 +399,9 @@ class Room:
                 # now he's part of the room, let him/her know
                 self._connections.append(connection)
                 connection.room = self
-                connection.add_command(common.Command(common.MessageType.JOIN_ROOM, common.encode_string(self.name)))
+                connection.add_command(
+                    common.Command(common.MessageType.JOIN_ROOM,
+                                   common.encode_string(self.name)))
                 return True
 
         while True:
@@ -386,7 +420,8 @@ class Room:
         :param connection: Connection:
 
         """
-        logger.info("Remove Client % s from Room % s", connection.address, self.name)
+        logger.info("Remove Client % s from Room % s", connection.address,
+                    self.name)
         self._connections.remove(connection)
 
     def attributes_dict(self):
@@ -406,21 +441,19 @@ class Room:
         :param sender: Connection:
 
         """
+
         def merge_command():
             """Add the command to the room list, possibly merge with the previous command."""
             command_type = command.type
-            if (
-                common.MessageType.OPTIMIZED_COMMANDS.value
-                < command_type.value
-                < common.MessageType.END_OPTIMIZED_COMMANDS.value
-            ):
+            if (common.MessageType.OPTIMIZED_COMMANDS.value <
+                    command_type.value <
+                    common.MessageType.END_OPTIMIZED_COMMANDS.value):
                 command_path = common.decode_string(command.data, 0)[0]
                 if self.command_count() > 0:
                     stored_command = self._commands[-1]
-                    if (
-                        command_type == stored_command.type
-                        and command_path == common.decode_string(stored_command.data, 0)[0]
-                    ):
+                    if (command_type == stored_command.type
+                            and command_path == common.decode_string(
+                                stored_command.data, 0)[0]):
                         self._commands.pop()
                         self.byte_size -= stored_command.byte_size()
             self._commands.append(command)
@@ -435,7 +468,8 @@ class Room:
             if self.byte_size != current_byte_size:
                 room_update[common.RoomAttributes.BYTE_SIZE] = self.byte_size
             if current_command_count != self.command_count():
-                room_update[common.RoomAttributes.COMMAND_COUNT] = self.command_count()
+                room_update[common.RoomAttributes.
+                            COMMAND_COUNT] = self.command_count()
 
             sender._server.broadcast_room_update(self, room_update)
 
@@ -446,6 +480,7 @@ class Room:
 
 class Server:
     """ """
+
     def __init__(self):
         self._rooms: Dict[str, Room] = {}
         self._connections: Dict[str, Connection] = {}
@@ -471,8 +506,8 @@ class Server:
             logger.info(f"Room {room_name} deleted")
 
             self.broadcast_to_all_clients(
-                common.Command(common.MessageType.ROOM_DELETED, common.encode_string(room_name))
-            )
+                common.Command(common.MessageType.ROOM_DELETED,
+                               common.encode_string(room_name)))
 
     def join_room(self, connection: Connection, room_name: str):
         """
@@ -491,8 +526,11 @@ class Server:
             # room is now visible to others, but not joinable until the client has sent CONTENT
             logger.info(f"Room {room_name} added")
 
-            self.broadcast_room_update(room, room.attributes_dict())  # Inform new room
-            self.broadcast_client_update(connection, {common.ClientAttributes.ROOM: connection.room.name})
+            self.broadcast_room_update(
+                room, room.attributes_dict())  # Inform new room
+            self.broadcast_client_update(
+                connection,
+                {common.ClientAttributes.ROOM: connection.room.name})
 
         with self._mutex:
             room = self._rooms.get(room_name)
@@ -515,7 +553,8 @@ class Server:
             room.join_count -= 1
 
         assert connection.room is not None
-        self.broadcast_client_update(connection, {common.ClientAttributes.ROOM: connection.room.name})
+        self.broadcast_client_update(
+            connection, {common.ClientAttributes.ROOM: connection.room.name})
 
     def leave_room(self, connection: Connection):
         """
@@ -530,13 +569,17 @@ class Server:
                 raise ValueError(f"Room not found {connection.room.name})")
             room.remove_client(connection)
             connection.room = None
-            self.broadcast_client_update(connection, {common.ClientAttributes.ROOM: None})
+            self.broadcast_client_update(connection,
+                                         {common.ClientAttributes.ROOM: None})
 
             if room.client_count() == 0 and not room.keep_open:
-                logger.info('No more clients in room "%s" and not keep_open', room.name)
+                logger.info('No more clients in room "%s" and not keep_open',
+                            room.name)
                 self.delete_room(room.name)
             else:
-                logger.info(f"Connections left in room {room.name}: {room.client_count()}.")
+                logger.info(
+                    f"Connections left in room {room.name}: {room.client_count()}."
+                )
 
     def broadcast_to_all_clients(self, command: common.Command):
         """
@@ -548,7 +591,8 @@ class Server:
             for connection in self._connections.values():
                 connection.add_command(command)
 
-    def broadcast_client_update(self, connection: Connection, attributes: Dict[str, Any]):
+    def broadcast_client_update(self, connection: Connection,
+                                attributes: Dict[str, Any]):
         """
 
         :param connection: Connection:
@@ -560,8 +604,9 @@ class Server:
             return
 
         self.broadcast_to_all_clients(
-            common.Command(common.MessageType.CLIENT_UPDATE, common.encode_json({connection.unique_id: attributes}))
-        )
+            common.Command(
+                common.MessageType.CLIENT_UPDATE,
+                common.encode_json({connection.unique_id: attributes})))
 
     def broadcast_room_update(self, room: Room, attributes: Dict[str, Any]):
         """
@@ -578,10 +623,10 @@ class Server:
             common.Command(
                 common.MessageType.ROOM_UPDATE,
                 common.encode_json({room.name: attributes}),
-            )
-        )
+            ))
 
-    def set_room_custom_attributes(self, room_name: str, custom_attributes: Mapping[str, Any]):
+    def set_room_custom_attributes(self, room_name: str,
+                                   custom_attributes: Mapping[str, Any]):
         """
 
         :param room_name: str:
@@ -594,7 +639,8 @@ class Server:
                 logger.warning("Room %s does not exist.", room_name)
                 return
 
-            diff = update_attributes_and_get_diff(self._rooms[room_name].custom_attributes, custom_attributes)
+            diff = update_attributes_and_get_diff(
+                self._rooms[room_name].custom_attributes, custom_attributes)
             self.broadcast_room_update(self._rooms[room_name], diff)
 
     def set_room_keep_open(self, room_name: str, value: bool):
@@ -611,19 +657,28 @@ class Server:
             room = self._rooms[room_name]
             if room.keep_open != value:
                 room.keep_open = value
-                self.broadcast_room_update(room, {common.RoomAttributes.KEEP_OPEN: room.keep_open})
+                self.broadcast_room_update(
+                    room, {common.RoomAttributes.KEEP_OPEN: room.keep_open})
 
     def get_list_rooms_command(self) -> common.Command:
         """ """
         with self._mutex:
-            result_dict = {room_name: value.attributes_dict() for room_name, value in self._rooms.items()}
-            return common.Command(common.MessageType.LIST_ROOMS, common.encode_json(result_dict))
+            result_dict = {
+                room_name: value.attributes_dict()
+                for room_name, value in self._rooms.items()
+            }
+            return common.Command(common.MessageType.LIST_ROOMS,
+                                  common.encode_json(result_dict))
 
     def get_list_clients_command(self) -> common.Command:
         """ """
         with self._mutex:
-            result_dict = {cid: c.client_attributes() for cid, c in self._connections.items()}
-            return common.Command(common.MessageType.LIST_CLIENTS, common.encode_json(result_dict))
+            result_dict = {
+                cid: c.client_attributes()
+                for cid, c in self._connections.items()
+            }
+            return common.Command(common.MessageType.LIST_CLIENTS,
+                                  common.encode_json(result_dict))
 
     def handle_client_disconnect(self, connection: Connection):
         """
@@ -646,8 +701,8 @@ class Server:
         logger.info("%s closed", connection.address)
 
         self.broadcast_to_all_clients(
-            common.Command(common.MessageType.CLIENT_DISCONNECTED, common.encode_string(connection.unique_id))
-        )
+            common.Command(common.MessageType.CLIENT_DISCONNECTED,
+                           common.encode_string(connection.unique_id)))
 
     def run(self, port):
         """
@@ -685,13 +740,15 @@ class Server:
                     client_socket = Socket(client_socket)
                     client_socket.set_bandwidth(self.bandwidth, self.bandwidth)
 
-                    connection = Connection(self, client_socket, client_address)
+                    connection = Connection(self, client_socket,
+                                            client_address)
                     connection.latency = self.latency
                     with self._mutex:
                         self._connections[connection.unique_id] = connection
                     connection.start()
                     logger.info(f"New connection from {client_address}")
-                    self.broadcast_client_update(connection, connection.client_attributes())
+                    self.broadcast_client_update(
+                        connection, connection.client_attributes())
             except KeyboardInterrupt:
                 break
 
@@ -719,14 +776,20 @@ def main():
 
 def parse_cli_args():
     """ """
-    parser = argparse.ArgumentParser(description="Start broadcasting server for Mixer")
+    parser = argparse.ArgumentParser(
+        description="Start broadcasting server for Mixer")
     add_logging_cli_args(parser)
     parser.add_argument("--port", type=int, default=common.DEFAULT_PORT)
     parser.add_argument("--log-server-updates", action="store_true")
     parser.add_argument(
-        "--bandwidth", type=float, default=0.0, help="simulate bandwidth limitation (megabytes per second)"
-    )
-    parser.add_argument("--latency", type=float, default=0.0, help="simulate network latency (in milliseconds)")
+        "--bandwidth",
+        type=float,
+        default=0.0,
+        help="simulate bandwidth limitation (megabytes per second)")
+    parser.add_argument("--latency",
+                        type=float,
+                        default=0.0,
+                        help="simulate network latency (in milliseconds)")
     return parser.parse_args(), parser
 
 

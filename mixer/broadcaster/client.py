@@ -14,7 +14,8 @@ from mixer.broadcaster.common import update_attributes_and_get_diff
 from mixer.broadcaster.common import update_named_attributes
 from mixer.broadcaster.socket import Socket
 
-logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(__name__)
+logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(
+    __name__)
 
 
 class Client:
@@ -27,13 +28,16 @@ class Client:
 
     """
 
-    def __init__(self, host: str = common.DEFAULT_HOST, port: int = common.DEFAULT_PORT):
+    def __init__(self,
+                 host: str = common.DEFAULT_HOST,
+                 port: int = common.DEFAULT_PORT):
         self.host = host
         self.port = port
         self.pending_commands: List[common.Command] = []
         self.socket: Socket = None
 
-        self.client_id: Optional[str] = None  # Will be filled with a unique string identifying this client
+        self.client_id: Optional[
+            str] = None  # Will be filled with a unique string identifying this client
         self.current_custom_attributes: Dict[str, Any] = {}
         self.clients_attributes: Dict[str, Dict[str, Any]] = {}
         self.rooms_attributes: Dict[str, Dict[str, Any]] = {}
@@ -65,10 +69,15 @@ class Client:
             self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
-            if hasattr(socket, "TCP_KEEPIDLE") and hasattr(socket, "TCP_KEEPINTVL") and hasattr(socket, "TCP_KEEPCNT"):
-                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1 * 60)
-                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 30)
-                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
+            if hasattr(socket, "TCP_KEEPIDLE") and hasattr(
+                    socket, "TCP_KEEPINTVL") and hasattr(
+                        socket, "TCP_KEEPCNT"):
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE,
+                                       1 * 60)
+                self.socket.setsockopt(socket.IPPROTO_TCP,
+                                       socket.TCP_KEEPINTVL, 30)
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT,
+                                       5)
 
             local_address = self.socket.getsockname()
             logger.info(
@@ -152,7 +161,9 @@ class Client:
         :param room_name: str:
 
         """
-        return self.send_command(common.Command(common.MessageType.JOIN_ROOM, room_name.encode("utf8"), 0))
+        return self.send_command(
+            common.Command(common.MessageType.JOIN_ROOM,
+                           room_name.encode("utf8"), 0))
 
     def leave_room(self, room_name: str):
         """
@@ -161,7 +172,9 @@ class Client:
 
         """
         self.current_room = None
-        return self.send_command(common.Command(common.MessageType.LEAVE_ROOM, room_name.encode("utf8"), 0))
+        return self.send_command(
+            common.Command(common.MessageType.LEAVE_ROOM,
+                           room_name.encode("utf8"), 0))
 
     def delete_room(self, room_name: str):
         """
@@ -169,7 +182,9 @@ class Client:
         :param room_name: str:
 
         """
-        return self.send_command(common.Command(common.MessageType.DELETE_ROOM, room_name.encode("utf8"), 0))
+        return self.send_command(
+            common.Command(common.MessageType.DELETE_ROOM,
+                           room_name.encode("utf8"), 0))
 
     def set_client_attributes(self, attributes: dict):
         """
@@ -177,13 +192,14 @@ class Client:
         :param attributes: dict:
 
         """
-        diff = update_attributes_and_get_diff(self.current_custom_attributes, attributes)
+        diff = update_attributes_and_get_diff(self.current_custom_attributes,
+                                              attributes)
         if diff == {}:
             return True
 
         return self.send_command(
-            common.Command(common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES, common.encode_json(diff), 0)
-        )
+            common.Command(common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES,
+                           common.encode_json(diff), 0))
 
     def set_room_attributes(self, room_name: str, attributes: dict):
         """
@@ -192,7 +208,8 @@ class Client:
         :param attributes: dict:
 
         """
-        return self.send_command(common.make_set_room_attributes_command(room_name, attributes))
+        return self.send_command(
+            common.make_set_room_attributes_command(room_name, attributes))
 
     def send_list_rooms(self):
         """ """
@@ -207,9 +224,9 @@ class Client:
         """
         return self.send_command(
             common.Command(
-                common.MessageType.SET_ROOM_KEEP_OPEN, common.encode_string(room_name) + common.encode_bool(value), 0
-            )
-        )
+                common.MessageType.SET_ROOM_KEEP_OPEN,
+                common.encode_string(room_name) + common.encode_bool(value),
+                0))
 
     def _handle_list_client(self, command: common.Command):
         """
@@ -255,7 +272,9 @@ class Client:
         room_name, _ = common.decode_string(command.data, 0)
 
         if room_name not in self.rooms_attributes:
-            logger.warning("Room %s deleted but no attributes in internal view.", room_name)
+            logger.warning(
+                "Room %s deleted but no attributes in internal view.",
+                room_name)
             return
         del self.rooms_attributes[room_name]
 
@@ -266,7 +285,8 @@ class Client:
 
         """
         clients_attributes_update, _ = common.decode_json(command.data, 0)
-        update_named_attributes(self.clients_attributes, clients_attributes_update)
+        update_named_attributes(self.clients_attributes,
+                                clients_attributes_update)
 
     def _handle_client_disconnected(self, command: common.Command):
         """
@@ -277,7 +297,9 @@ class Client:
         client_id, _ = common.decode_string(command.data, 0)
 
         if client_id not in self.clients_attributes:
-            logger.warning("Client %s disconnected but no attributes in internal view.", client_id)
+            logger.warning(
+                "Client %s disconnected but no attributes in internal view.",
+                client_id)
             return
         del self.clients_attributes[client_id]
 
@@ -302,17 +324,27 @@ class Client:
 
         logger.error("Received error message : %s", error_message)
 
-    _default_command_handlers: Mapping[MessageType, Callable[[common.Command], None]] = {
-        MessageType.LIST_CLIENTS: _handle_list_client,
-        MessageType.LIST_ROOMS: _handle_list_rooms,
-        MessageType.CLIENT_ID: _handle_client_id,
-        MessageType.ROOM_UPDATE: _handle_room_update,
-        MessageType.ROOM_DELETED: _handle_room_deleted,
-        MessageType.CLIENT_UPDATE: _handle_client_update,
-        MessageType.CLIENT_DISCONNECTED: _handle_client_disconnected,
-        MessageType.JOIN_ROOM: _handle_join_room,
-        MessageType.SEND_ERROR: _handle_send_error,
-    }
+    _default_command_handlers: Mapping[MessageType,
+                                       Callable[[common.Command], None]] = {
+                                           MessageType.LIST_CLIENTS:
+                                           _handle_list_client,
+                                           MessageType.LIST_ROOMS:
+                                           _handle_list_rooms,
+                                           MessageType.CLIENT_ID:
+                                           _handle_client_id,
+                                           MessageType.ROOM_UPDATE:
+                                           _handle_room_update,
+                                           MessageType.ROOM_DELETED:
+                                           _handle_room_deleted,
+                                           MessageType.CLIENT_UPDATE:
+                                           _handle_client_update,
+                                           MessageType.CLIENT_DISCONNECTED:
+                                           _handle_client_disconnected,
+                                           MessageType.JOIN_ROOM:
+                                           _handle_join_room,
+                                           MessageType.SEND_ERROR:
+                                           _handle_send_error,
+                                       }
 
     def has_default_handler(self, message_type: MessageType):
         """
@@ -351,7 +383,8 @@ class Client:
 
         """
         for idx, command in enumerate(self.pending_commands):
-            logger.debug("Send %s (%d / %d)", command.type, idx + 1, len(self.pending_commands))
+            logger.debug("Send %s (%d / %d)", command.type, idx + 1,
+                         len(self.pending_commands))
 
             if not self.send_command(command):
                 break
