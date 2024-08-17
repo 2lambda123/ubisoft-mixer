@@ -49,9 +49,11 @@ class Connection:
         self.thread: threading.Thread = threading.Thread(None, self.run)
 
     def start(self):
+        """ """
         self.thread.start()
 
     def client_attributes(self) -> Dict[str, Any]:
+        """ """
         return {
             **self.custom_attributes,
             common.ClientAttributes.ID: f"{self.unique_id}",
@@ -61,11 +63,22 @@ class Connection:
         }
 
     def run(self):
+        """ """
         def _send_error(s: str):
+            """
+
+            :param s: str: 
+
+            """
             logger.error("Sending error %s", s)
             self.send_command(common.Command(common.MessageType.SEND_ERROR, common.encode_string(s)))
 
         def _join_room(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             if self.room is not None:
                 _send_error(f"Received join_room but room {self.room.name} is already joined")
                 return
@@ -76,6 +89,11 @@ class Connection:
                 _send_error(f"{e}")
 
         def _leave_room(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             if self.room is None:
                 _send_error(f"Received leave_room but no room is joined")
                 return
@@ -84,40 +102,91 @@ class Connection:
             self.send_command(common.Command(common.MessageType.LEAVE_ROOM))
 
         def _list_rooms(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             self.send_command(self._server.get_list_rooms_command())
 
         def _delete_room(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             self._server.delete_room(command.data.decode())
 
         def _set_custom_attributes(custom_attributes: Mapping[str, Any]):
+            """
+
+            :param custom_attributes: Mapping[str: 
+            :param Any]: 
+
+            """
             diff = update_attributes_and_get_diff(self.custom_attributes, custom_attributes)
             self._server.broadcast_client_update(self, diff)
 
         def _set_client_name(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             _set_custom_attributes({common.ClientAttributes.USERNAME: command.data.decode()})
 
         def _list_clients(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             self.send_command(self._server.get_list_clients_command())
 
         def _set_client_custom_attributes(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             _set_custom_attributes(common.decode_json(command.data, 0)[0])
 
         def _set_room_custom_attributes(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             room_name, offset = common.decode_string(command.data, 0)
             custom_attributes, _ = common.decode_json(command.data, offset)
             self._server.set_room_custom_attributes(room_name, custom_attributes)
 
         def _set_room_keep_open(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             room_name, offset = common.decode_string(command.data, 0)
             value, _ = common.decode_bool(command.data, offset)
             self._server.set_room_keep_open(room_name, value)
 
         def _client_id(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             self.send_command(
                 common.Command(common.MessageType.CLIENT_ID, f"{self.address[0]}:{self.address[1]}".encode("utf8"))
             )
 
         def _content(command: common.Command):
+            """
+
+            :param command: common.Command: 
+
+            """
             if self.room is None:
                 _send_error("Unjoined client trying to set room joinable")
                 return
@@ -142,6 +211,7 @@ class Connection:
         }
 
         def _handle_incoming_commands():
+            """ """
             received_commands = common.read_all_messages(self.socket)
             count = len(received_commands)
 
@@ -172,6 +242,7 @@ class Connection:
                     logger.error("Command %s received but no handler for it on server", command.type)
 
         def _handle_outgoing_commands():
+            """ """
             self.fetch_outgoing_commands()
 
         global SHUTDOWN
@@ -185,6 +256,7 @@ class Connection:
         self._server.handle_client_disconnect(self)
 
     def fetch_outgoing_commands(self):
+        """ """
         waited_once = False
         while True:
             try:
@@ -200,14 +272,18 @@ class Connection:
             self._command_queue.task_done()
 
     def add_command(self, command: common.Command):
-        """
-        Add command to be consumed later. Meant to be used by other threads.
+        """Add command to be consumed later. Meant to be used by other threads.
+
+        :param command: common.Command: 
+
         """
         self._command_queue.put(command)
 
     def send_command(self, command: common.Command):
-        """
-        Directly send a command to the socket. Meant to be used by this thread.
+        """Directly send a command to the socket. Meant to be used by this thread.
+
+        :param command: common.Command: 
+
         """
         assert threading.current_thread() is self.thread
         if _log_server_updates or command.type not in (
@@ -219,11 +295,12 @@ class Connection:
 
 
 class Room:
-    """
-    Room class is responsible for:
+    """Room class is responsible for:
     - handling its list of clients (as Connection instances)
     - keep a list of commands, to be dispatched to new clients
     - dispatch added commands to clients already in the room
+
+
     """
 
     def __init__(self, server: Server, room_name: str, creator: Connection):
@@ -250,12 +327,19 @@ class Room:
         )  # self.joinable will be set to true by creator later
 
     def client_count(self):
+        """ """
         return len(self._connections) + self.join_count
 
     def command_count(self):
+        """ """
         return len(self._commands)
 
     def add_client(self, connection: Connection):
+        """
+
+        :param connection: Connection: 
+
+        """
         logger.info(f"Add Client {connection.unique_id} to Room {self.name}")
 
         connection.send_command(common.Command(common.MessageType.CLEAR_CONTENT))  # todo temporary size stored here
@@ -263,6 +347,7 @@ class Room:
         offset = 0
 
         def _try_finish_sync():
+            """ """
             connection.fetch_outgoing_commands()
             with self._commands_mutex:
                 # from here no one can add commands anymore to self._commands (clients can still join and read previous commands)
@@ -292,10 +377,16 @@ class Room:
             offset = command_count
 
     def remove_client(self, connection: Connection):
+        """
+
+        :param connection: Connection: 
+
+        """
         logger.info("Remove Client % s from Room % s", connection.address, self.name)
         self._connections.remove(connection)
 
     def attributes_dict(self):
+        """ """
         return {
             **self.custom_attributes,
             common.RoomAttributes.KEEP_OPEN: self.keep_open,
@@ -305,10 +396,14 @@ class Room:
         }
 
     def add_command(self, command, sender: Connection):
+        """
+
+        :param command: 
+        :param sender: Connection: 
+
+        """
         def merge_command():
-            """
-            Add the command to the room list, possibly merge with the previous command.
-            """
+            """Add the command to the room list, possibly merge with the previous command."""
             command_type = command.type
             if (
                 common.MessageType.OPTIMIZED_COMMANDS.value
@@ -346,6 +441,7 @@ class Room:
 
 
 class Server:
+    """ """
     def __init__(self):
         self._rooms: Dict[str, Room] = {}
         self._connections: Dict[str, Connection] = {}
@@ -354,6 +450,11 @@ class Server:
         self.bandwidth: float = 0.0  # MBps
 
     def delete_room(self, room_name: str):
+        """
+
+        :param room_name: str: 
+
+        """
         with self._mutex:
             if room_name not in self._rooms:
                 logger.warning("Room %s does not exist.", room_name)
@@ -370,9 +471,16 @@ class Server:
             )
 
     def join_room(self, connection: Connection, room_name: str):
+        """
+
+        :param connection: Connection: 
+        :param room_name: str: 
+
+        """
         assert connection.room is None
 
         def _create_room():
+            """ """
             logger.info(f"Room {room_name} does not exist. Creating it.")
             room = Room(self, room_name, connection)
             self._rooms[room_name] = room
@@ -406,6 +514,11 @@ class Server:
         self.broadcast_client_update(connection, {common.ClientAttributes.ROOM: connection.room.name})
 
     def leave_room(self, connection: Connection):
+        """
+
+        :param connection: Connection: 
+
+        """
         assert connection.room is not None
         with self._mutex:
             room = self._rooms.get(connection.room.name)
@@ -422,11 +535,23 @@ class Server:
                 logger.info(f"Connections left in room {room.name}: {room.client_count()}.")
 
     def broadcast_to_all_clients(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         with self._mutex:
             for connection in self._connections.values():
                 connection.add_command(command)
 
     def broadcast_client_update(self, connection: Connection, attributes: Dict[str, Any]):
+        """
+
+        :param connection: Connection: 
+        :param attributes: Dict[str: 
+        :param Any]: 
+
+        """
         if attributes == {}:
             return
 
@@ -435,6 +560,13 @@ class Server:
         )
 
     def broadcast_room_update(self, room: Room, attributes: Dict[str, Any]):
+        """
+
+        :param room: Room: 
+        :param attributes: Dict[str: 
+        :param Any]: 
+
+        """
         if attributes == {}:
             return
 
@@ -446,6 +578,13 @@ class Server:
         )
 
     def set_room_custom_attributes(self, room_name: str, custom_attributes: Mapping[str, Any]):
+        """
+
+        :param room_name: str: 
+        :param custom_attributes: Mapping[str: 
+        :param Any]: 
+
+        """
         with self._mutex:
             if room_name not in self._rooms:
                 logger.warning("Room %s does not exist.", room_name)
@@ -455,6 +594,12 @@ class Server:
             self.broadcast_room_update(self._rooms[room_name], diff)
 
     def set_room_keep_open(self, room_name: str, value: bool):
+        """
+
+        :param room_name: str: 
+        :param value: bool: 
+
+        """
         with self._mutex:
             if room_name not in self._rooms:
                 logger.warning("Room %s does not exist.", room_name)
@@ -465,16 +610,23 @@ class Server:
                 self.broadcast_room_update(room, {common.RoomAttributes.KEEP_OPEN: room.keep_open})
 
     def get_list_rooms_command(self) -> common.Command:
+        """ """
         with self._mutex:
             result_dict = {room_name: value.attributes_dict() for room_name, value in self._rooms.items()}
             return common.Command(common.MessageType.LIST_ROOMS, common.encode_json(result_dict))
 
     def get_list_clients_command(self) -> common.Command:
+        """ """
         with self._mutex:
             result_dict = {cid: c.client_attributes() for cid, c in self._connections.items()}
             return common.Command(common.MessageType.LIST_CLIENTS, common.encode_json(result_dict))
 
     def handle_client_disconnect(self, connection: Connection):
+        """
+
+        :param connection: Connection: 
+
+        """
         # First remove connection from server state, to avoid further broadcasting tentatives
         with self._mutex:
             del self._connections[connection.unique_id]
@@ -494,6 +646,11 @@ class Server:
         )
 
     def run(self, port):
+        """
+
+        :param port: 
+
+        """
         global SHUTDOWN
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -540,6 +697,7 @@ class Server:
 
 
 def main():
+    """ """
     global _log_server_updates
     args, args_parser = parse_cli_args()
     init_logging(args)
@@ -556,6 +714,7 @@ def main():
 
 
 def parse_cli_args():
+    """ """
     parser = argparse.ArgumentParser(description="Start broadcasting server for Mixer")
     add_logging_cli_args(parser)
     parser.add_argument("--port", type=int, default=common.DEFAULT_PORT)

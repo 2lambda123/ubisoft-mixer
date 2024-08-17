@@ -13,12 +13,13 @@ logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(__
 
 
 class Client:
-    """
-    The client class is responsible for:
+    """The client class is responsible for:
     - handling the connection with the server
     - receiving packet of bytes and convert them to commands
     - send commands
     - maintain an updated view of clients and room states from server's inputs
+
+
     """
 
     def __init__(self, host: str = common.DEFAULT_HOST, port: int = common.DEFAULT_PORT):
@@ -46,6 +47,7 @@ class Client:
             self.disconnect()
 
     def connect(self):
+        """ """
         if self.is_connected():
             raise RuntimeError("Client.connect : already connected")
 
@@ -84,26 +86,36 @@ class Client:
             raise
 
     def disconnect(self):
+        """ """
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
 
     def is_connected(self):
+        """ """
         return self.socket is not None
 
     def add_command(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         self.pending_commands.append(command)
 
     def handle_connection_lost(self):
+        """ """
         logger.info("Connection lost for %s:%s", self.host, self.port)
         # Set socket to None before putting CONNECTION_LIST message to avoid sending/reading new messages
         self.socket = None
 
     def wait(self, message_type: MessageType) -> bool:
-        """
-        Wait for a command of a given message type, the remaining commands are ignored.
+        """Wait for a command of a given message type, the remaining commands are ignored.
         Usually message_type is LEAVING_ROOM.
+
+        :param message_type: MessageType: 
+
         """
         while self.is_connected():
             try:
@@ -117,6 +129,11 @@ class Client:
         return False
 
     def send_command(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         try:
             common.write_message(self.socket, command)
             return True
@@ -125,16 +142,36 @@ class Client:
             return False
 
     def join_room(self, room_name: str):
+        """
+
+        :param room_name: str: 
+
+        """
         return self.send_command(common.Command(common.MessageType.JOIN_ROOM, room_name.encode("utf8"), 0))
 
     def leave_room(self, room_name: str):
+        """
+
+        :param room_name: str: 
+
+        """
         self.current_room = None
         return self.send_command(common.Command(common.MessageType.LEAVE_ROOM, room_name.encode("utf8"), 0))
 
     def delete_room(self, room_name: str):
+        """
+
+        :param room_name: str: 
+
+        """
         return self.send_command(common.Command(common.MessageType.DELETE_ROOM, room_name.encode("utf8"), 0))
 
     def set_client_attributes(self, attributes: dict):
+        """
+
+        :param attributes: dict: 
+
+        """
         diff = update_attributes_and_get_diff(self.current_custom_attributes, attributes)
         if diff == {}:
             return True
@@ -144,12 +181,25 @@ class Client:
         )
 
     def set_room_attributes(self, room_name: str, attributes: dict):
+        """
+
+        :param room_name: str: 
+        :param attributes: dict: 
+
+        """
         return self.send_command(common.make_set_room_attributes_command(room_name, attributes))
 
     def send_list_rooms(self):
+        """ """
         return self.send_command(common.Command(common.MessageType.LIST_ROOMS))
 
     def set_room_keep_open(self, room_name: str, value: bool):
+        """
+
+        :param room_name: str: 
+        :param value: bool: 
+
+        """
         return self.send_command(
             common.Command(
                 common.MessageType.SET_ROOM_KEEP_OPEN, common.encode_string(room_name) + common.encode_bool(value), 0
@@ -157,21 +207,46 @@ class Client:
         )
 
     def _handle_list_client(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         clients_attributes, _ = common.decode_json(command.data, 0)
         update_named_attributes(self.clients_attributes, clients_attributes)
 
     def _handle_list_rooms(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         rooms_attributes, _ = common.decode_json(command.data, 0)
         update_named_attributes(self.rooms_attributes, rooms_attributes)
 
     def _handle_client_id(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         self.client_id = command.data.decode()
 
     def _handle_room_update(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         rooms_attributes_update, _ = common.decode_json(command.data, 0)
         update_named_attributes(self.rooms_attributes, rooms_attributes_update)
 
     def _handle_room_deleted(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         room_name, _ = common.decode_string(command.data, 0)
 
         if room_name not in self.rooms_attributes:
@@ -180,10 +255,20 @@ class Client:
         del self.rooms_attributes[room_name]
 
     def _handle_client_update(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         clients_attributes_update, _ = common.decode_json(command.data, 0)
         update_named_attributes(self.clients_attributes, clients_attributes_update)
 
     def _handle_client_disconnected(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         client_id, _ = common.decode_string(command.data, 0)
 
         if client_id not in self.clients_attributes:
@@ -192,12 +277,22 @@ class Client:
         del self.clients_attributes[client_id]
 
     def _handle_join_room(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         room_name, _ = common.decode_string(command.data, 0)
 
         logger.info("Join room %s confirmed by server", room_name)
         self.current_room = room_name
 
     def _handle_send_error(self, command: common.Command):
+        """
+
+        :param command: common.Command: 
+
+        """
         error_message, _ = common.decode_string(command.data, 0)
 
         logger.error("Received error message : %s", error_message)
@@ -215,12 +310,18 @@ class Client:
     }
 
     def has_default_handler(self, message_type: MessageType):
+        """
+
+        :param message_type: MessageType: 
+
+        """
         return message_type in self._default_command_handlers
 
     def fetch_incoming_commands(self) -> List[common.Command]:
-        """
-        Gather incoming commands from the socket and return them as a list.
+        """Gather incoming commands from the socket and return them as a list.
         Process those that have a default handler with the one registered.
+
+
         """
         try:
             received_commands = common.read_all_messages(self.socket)
@@ -239,8 +340,10 @@ class Client:
         return received_commands
 
     def fetch_outgoing_commands(self, commands_send_interval=0):
-        """
-        Send commands in pending_commands queue to the server.
+        """Send commands in pending_commands queue to the server.
+
+        :param commands_send_interval:  (Default value = 0)
+
         """
         for idx, command in enumerate(self.pending_commands):
             logger.debug("Send %s (%d / %d)", command.type, idx + 1, len(self.pending_commands))
@@ -254,5 +357,10 @@ class Client:
         self.pending_commands = []
 
     def fetch_commands(self, commands_send_interval=0) -> List[common.Command]:
+        """
+
+        :param commands_send_interval:  (Default value = 0)
+
+        """
         self.fetch_outgoing_commands(commands_send_interval)
         return self.fetch_incoming_commands()
