@@ -175,10 +175,13 @@ class Connection:
         def _handle_incoming_commands():
             received_commands = common.read_all_messages(self.socket)
             count = len(received_commands)
-            if count > 0:
-                # upstream
-                time.sleep(self.latency)
-                logger.debug("Received from %s - %d commands ", self.unique_id, count)
+
+            if count == 0:
+                return
+
+            logger.debug("Received from %s - %d commands ", self.unique_id, count)
+
+            time.sleep(self.latency)
 
             for command in received_commands:
                 if _log_server_updates or command.type not in (common.MessageType.SET_CLIENT_CUSTOM_ATTRIBUTES,):
@@ -568,6 +571,19 @@ class Server:
     def run(self, port):
         global SHUTDOWN
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        if hasattr(socket, "TCP_KEEPIDLE"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+        elif hasattr(socket, "TCP_KEEPALIVE"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 1)
+        if hasattr(socket, "TCP_KEEPINTVL"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 1)
+        if hasattr(socket, "TCP_KEEPCNT"):
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 100)
+
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
         binding_host = ""
         sock.bind((binding_host, port))
         sock.setblocking(0)
