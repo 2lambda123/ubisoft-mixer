@@ -104,7 +104,7 @@ class Client:
     def add_command(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         self.pending_commands.append(command)
@@ -119,7 +119,7 @@ class Client:
         """Wait for a command of a given message type, the remaining commands are ignored.
         Usually message_type is LEAVING_ROOM.
 
-        :param message_type: MessageType: 
+        :param message_type: MessageType:
 
         """
         while self.is_connected():
@@ -136,7 +136,7 @@ class Client:
     def send_command(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         try:
@@ -149,7 +149,7 @@ class Client:
     def join_room(self, room_name: str):
         """
 
-        :param room_name: str: 
+        :param room_name: str:
 
         """
         return self.send_command(common.Command(common.MessageType.JOIN_ROOM, room_name.encode("utf8"), 0))
@@ -157,7 +157,7 @@ class Client:
     def leave_room(self, room_name: str):
         """
 
-        :param room_name: str: 
+        :param room_name: str:
 
         """
         self.current_room = None
@@ -166,7 +166,7 @@ class Client:
     def delete_room(self, room_name: str):
         """
 
-        :param room_name: str: 
+        :param room_name: str:
 
         """
         return self.send_command(common.Command(common.MessageType.DELETE_ROOM, room_name.encode("utf8"), 0))
@@ -174,7 +174,7 @@ class Client:
     def set_client_attributes(self, attributes: dict):
         """
 
-        :param attributes: dict: 
+        :param attributes: dict:
 
         """
         diff = update_attributes_and_get_diff(self.current_custom_attributes, attributes)
@@ -188,8 +188,8 @@ class Client:
     def set_room_attributes(self, room_name: str, attributes: dict):
         """
 
-        :param room_name: str: 
-        :param attributes: dict: 
+        :param room_name: str:
+        :param attributes: dict:
 
         """
         return self.send_command(common.make_set_room_attributes_command(room_name, attributes))
@@ -201,8 +201,8 @@ class Client:
     def set_room_keep_open(self, room_name: str, value: bool):
         """
 
-        :param room_name: str: 
-        :param value: bool: 
+        :param room_name: str:
+        :param value: bool:
 
         """
         return self.send_command(
@@ -214,7 +214,7 @@ class Client:
     def _handle_list_client(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         clients_attributes, _ = common.decode_json(command.data, 0)
@@ -223,7 +223,7 @@ class Client:
     def _handle_list_rooms(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         rooms_attributes, _ = common.decode_json(command.data, 0)
@@ -232,7 +232,7 @@ class Client:
     def _handle_client_id(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         self.client_id = command.data.decode()
@@ -240,7 +240,7 @@ class Client:
     def _handle_room_update(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         rooms_attributes_update, _ = common.decode_json(command.data, 0)
@@ -249,7 +249,7 @@ class Client:
     def _handle_room_deleted(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         room_name, _ = common.decode_string(command.data, 0)
@@ -262,7 +262,7 @@ class Client:
     def _handle_client_update(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         clients_attributes_update, _ = common.decode_json(command.data, 0)
@@ -271,7 +271,7 @@ class Client:
     def _handle_client_disconnected(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         client_id, _ = common.decode_string(command.data, 0)
@@ -284,7 +284,7 @@ class Client:
     def _handle_join_room(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         room_name, _ = common.decode_string(command.data, 0)
@@ -295,7 +295,7 @@ class Client:
     def _handle_send_error(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         error_message, _ = common.decode_string(command.data, 0)
@@ -317,7 +317,7 @@ class Client:
     def has_default_handler(self, message_type: MessageType):
         """
 
-        :param message_type: MessageType: 
+        :param message_type: MessageType:
 
         """
         return message_type in self._default_command_handlers

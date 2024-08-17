@@ -71,7 +71,7 @@ class Connection:
         def _send_error(s: str):
             """
 
-            :param s: str: 
+            :param s: str:
 
             """
             logger.error("Sending error %s", s)
@@ -80,7 +80,7 @@ class Connection:
         def _join_room(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             if self.room is not None:
@@ -95,7 +95,7 @@ class Connection:
         def _leave_room(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             if self.room is None:
@@ -108,7 +108,7 @@ class Connection:
         def _list_rooms(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             self.send_command(self._server.get_list_rooms_command())
@@ -116,7 +116,7 @@ class Connection:
         def _delete_room(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             self._server.delete_room(command.data.decode())
@@ -124,8 +124,8 @@ class Connection:
         def _set_custom_attributes(custom_attributes: Mapping[str, Any]):
             """
 
-            :param custom_attributes: Mapping[str: 
-            :param Any]: 
+            :param custom_attributes: Mapping[str:
+            :param Any]:
 
             """
             diff = update_attributes_and_get_diff(self.custom_attributes, custom_attributes)
@@ -134,7 +134,7 @@ class Connection:
         def _set_client_name(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             _set_custom_attributes({common.ClientAttributes.USERNAME: command.data.decode()})
@@ -142,7 +142,7 @@ class Connection:
         def _list_clients(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             self.send_command(self._server.get_list_clients_command())
@@ -150,7 +150,7 @@ class Connection:
         def _set_client_custom_attributes(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             _set_custom_attributes(common.decode_json(command.data, 0)[0])
@@ -158,7 +158,7 @@ class Connection:
         def _set_room_custom_attributes(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             room_name, offset = common.decode_string(command.data, 0)
@@ -168,7 +168,7 @@ class Connection:
         def _set_room_keep_open(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             room_name, offset = common.decode_string(command.data, 0)
@@ -178,7 +178,7 @@ class Connection:
         def _client_id(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             self.send_command(
@@ -188,7 +188,7 @@ class Connection:
         def _content(command: common.Command):
             """
 
-            :param command: common.Command: 
+            :param command: common.Command:
 
             """
             if self.room is None:
@@ -278,7 +278,7 @@ class Connection:
     def add_command(self, command: common.Command):
         """Add command to be consumed later. Meant to be used by other threads.
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         self._command_queue.put(command)
@@ -286,7 +286,7 @@ class Connection:
     def send_command(self, command: common.Command):
         """Directly send a command to the socket. Meant to be used by this thread.
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         assert threading.current_thread() is self.thread
@@ -341,7 +341,7 @@ class Room:
     def add_client(self, connection: Connection):
         """
 
-        :param connection: Connection: 
+        :param connection: Connection:
 
         """
         logger.info(f"Add Client {connection.unique_id} to Room {self.name}")
@@ -383,7 +383,7 @@ class Room:
     def remove_client(self, connection: Connection):
         """
 
-        :param connection: Connection: 
+        :param connection: Connection:
 
         """
         logger.info("Remove Client % s from Room % s", connection.address, self.name)
@@ -402,8 +402,8 @@ class Room:
     def add_command(self, command, sender: Connection):
         """
 
-        :param command: 
-        :param sender: Connection: 
+        :param command:
+        :param sender: Connection:
 
         """
         def merge_command():
@@ -456,7 +456,7 @@ class Server:
     def delete_room(self, room_name: str):
         """
 
-        :param room_name: str: 
+        :param room_name: str:
 
         """
         with self._mutex:
@@ -477,8 +477,8 @@ class Server:
     def join_room(self, connection: Connection, room_name: str):
         """
 
-        :param connection: Connection: 
-        :param room_name: str: 
+        :param connection: Connection:
+        :param room_name: str:
 
         """
         assert connection.room is None
@@ -520,7 +520,7 @@ class Server:
     def leave_room(self, connection: Connection):
         """
 
-        :param connection: Connection: 
+        :param connection: Connection:
 
         """
         assert connection.room is not None
@@ -541,7 +541,7 @@ class Server:
     def broadcast_to_all_clients(self, command: common.Command):
         """
 
-        :param command: common.Command: 
+        :param command: common.Command:
 
         """
         with self._mutex:
@@ -551,9 +551,9 @@ class Server:
     def broadcast_client_update(self, connection: Connection, attributes: Dict[str, Any]):
         """
 
-        :param connection: Connection: 
-        :param attributes: Dict[str: 
-        :param Any]: 
+        :param connection: Connection:
+        :param attributes: Dict[str:
+        :param Any]:
 
         """
         if attributes == {}:
@@ -566,9 +566,9 @@ class Server:
     def broadcast_room_update(self, room: Room, attributes: Dict[str, Any]):
         """
 
-        :param room: Room: 
-        :param attributes: Dict[str: 
-        :param Any]: 
+        :param room: Room:
+        :param attributes: Dict[str:
+        :param Any]:
 
         """
         if attributes == {}:
@@ -584,9 +584,9 @@ class Server:
     def set_room_custom_attributes(self, room_name: str, custom_attributes: Mapping[str, Any]):
         """
 
-        :param room_name: str: 
-        :param custom_attributes: Mapping[str: 
-        :param Any]: 
+        :param room_name: str:
+        :param custom_attributes: Mapping[str:
+        :param Any]:
 
         """
         with self._mutex:
@@ -600,8 +600,8 @@ class Server:
     def set_room_keep_open(self, room_name: str, value: bool):
         """
 
-        :param room_name: str: 
-        :param value: bool: 
+        :param room_name: str:
+        :param value: bool:
 
         """
         with self._mutex:
@@ -628,7 +628,7 @@ class Server:
     def handle_client_disconnect(self, connection: Connection):
         """
 
-        :param connection: Connection: 
+        :param connection: Connection:
 
         """
         # First remove connection from server state, to avoid further broadcasting tentatives
@@ -652,7 +652,7 @@ class Server:
     def run(self, port):
         """
 
-        :param port: 
+        :param port:
 
         """
         global SHUTDOWN
