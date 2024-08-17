@@ -1,12 +1,17 @@
 import logging
 import socket
 import time
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import Optional
 
 import mixer.broadcaster.common as common
-from mixer.broadcaster.common import (MessageType,
-                                      update_attributes_and_get_diff,
-                                      update_named_attributes)
+from mixer.broadcaster.common import MessageType
+from mixer.broadcaster.common import update_attributes_and_get_diff
+from mixer.broadcaster.common import update_named_attributes
 from mixer.broadcaster.socket import Socket
 
 logger = logging.getLogger() if __name__ == "__main__" else logging.getLogger(__name__)

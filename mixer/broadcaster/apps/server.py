@@ -3,7 +3,6 @@ Server application.
 
 Can be launched from command line, or from the Mixer addon in Blender.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -13,10 +12,15 @@ import select
 import socket
 import threading
 import time
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import Optional
 
 import mixer.broadcaster.common as common
-from mixer.broadcaster.cli_utils import add_logging_cli_args, init_logging
+from mixer.broadcaster.cli_utils import add_logging_cli_args
+from mixer.broadcaster.cli_utils import init_logging
 from mixer.broadcaster.common import update_attributes_and_get_diff
 from mixer.broadcaster.socket import Socket
 
