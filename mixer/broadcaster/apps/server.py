@@ -6,17 +6,17 @@ Can be launched from command line, or from the Mixer addon in Blender.
 
 from __future__ import annotations
 
-import logging
 import argparse
+import logging
+import queue
 import select
+import socket
 import threading
 import time
-import socket
-import queue
-from typing import List, Mapping, Dict, Optional, Any
+from typing import Any, Dict, List, Mapping, Optional
 
-from mixer.broadcaster.cli_utils import init_logging, add_logging_cli_args
 import mixer.broadcaster.common as common
+from mixer.broadcaster.cli_utils import add_logging_cli_args, init_logging
 from mixer.broadcaster.common import update_attributes_and_get_diff
 from mixer.broadcaster.socket import Socket
 
