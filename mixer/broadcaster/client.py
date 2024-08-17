@@ -64,7 +64,11 @@ class Client:
 
             local_address = self.socket.getsockname()
             logger.info(
-                "Connecting from local %s:%s to %s:%s", local_address[0], local_address[1], self.host, self.port,
+                "Connecting from local %s:%s to %s:%s",
+                local_address[0],
+                local_address[1],
+                self.host,
+                self.port,
             )
             self.send_command(common.Command(common.MessageType.CLIENT_ID))
             self.send_command(common.Command(common.MessageType.LIST_CLIENTS))
