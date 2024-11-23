@@ -56,7 +56,7 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.4
 toml==0.10.1
-tornado==6.4.1
+tornado==6.4.2
 typed-ast==1.4.1
 typing==3.7.4.1
 typing-extensions==3.7.4.2
